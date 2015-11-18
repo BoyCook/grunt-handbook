@@ -10,7 +10,6 @@
 
 // var fs = require('fs');
 var fs = require('fs-extra');
-var http = require('http');
 var request = require('request');
 
 module.exports = function(grunt) {
@@ -58,7 +57,7 @@ module.exports = function(grunt) {
   }
 
 
-  grunt.registerMultiTask('handbook', 'Generating the Scaling Agile Handbook.', function() {
+  grunt.registerTask('sac2mHandbook', 'Generating the Scaling Agile Handbook.', function() {
     // Merge task-specific and/or target-specific options with these defaults.
     var done = this.async();
   
