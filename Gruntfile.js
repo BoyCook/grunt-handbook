@@ -30,22 +30,15 @@ module.exports = function(grunt) {
 
     // Configuration to be run (and then tested).
     handbook: {
-      default_options: {
-        options: {
-        },
-        files: {
-          'tmp/default_options': ['test/fixtures/testing', 'test/fixtures/123']
+      options: {
+        url: 'http://sac2m.tiddlyspace.com/bags/sac2m_public/tiddlers?select=tag:handbook&render=1',
+        target: 'tmp',
+        template: {
+          html: 'test/template.html'
         }
-      },
-      custom_options: {
-        options: {
-          separator: ': ',
-          punctuation: ' !!!'
-        },
-        files: {
-          'tmp/custom_options': ['test/fixtures/testing', 'test/fixtures/123']
-        }
-      }
+      },      
+      default_options: {},
+      custom_options: {}
     },
 
     // Unit tests.

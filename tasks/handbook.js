@@ -8,23 +8,17 @@
 
 'use strict';
 
-var fs = require('fs');
+// var fs = require('fs');
+var fs = require('fs-extra');
 var http = require('http');
 var request = require('request');
-var url = 'http://sac2m.tiddlyspace.com/bags/sac2m_public/tiddlers?select=tag:handbook&render=1';
-
-var handlebarsTemplate = "{{> html_tag }} {{> head }}  <body> {{> google_analytics }}  {{> menu }}  {{> poster this.poster }}  {{> handbook_content }}  {{> footer }}  </body>  {{> scripts }}  </html>";
 
 module.exports = function(grunt) {
 
   // Please see the Grunt documentation for more information regarding task
   // creation: http://gruntjs.com/creating-tasks
 
-  function writeTiddler(path, data) {
-    fs.writeFileSync(path, data);
-  }
-
-  function getTiddlers(next) {
+  function getTiddlers(url, html, target) {
     var tiddlers;
     var options = {
       url: url,
@@ -49,10 +43,11 @@ module.exports = function(grunt) {
             };
 
             var text = JSON.stringify(json);
-            var path = 'tmp/' + tiddler.title;
+            var path = target + '/' + tiddler.title;
             fs.mkdirSync(path);
             fs.writeFileSync(path + '/index.json', text);
-            fs.writeFileSync(path + '/index.html', handlebarsTemplate);
+            fs.copySync(html, path + '/index.html');
+            // fs.writeFileSync(path + '/index.html', handlebarsTemplate);
         }        
       } else {
         console.log(error);
@@ -72,32 +67,14 @@ module.exports = function(grunt) {
       separator: ', '
     });
 
-    getTiddlers(done);
+    console.log('Using source URL: ' + options.url);
+    console.log('Using HTML tempate: ' + options.template.html);
+    console.log('Using target: ' + options.target);
 
-    // Iterate over all specified file groups.
-    this.files.forEach(function(f) {
-      // Concat specified files.
-      var src = f.src.filter(function(filepath) {
-        // Warn on and remove invalid source files (if nonull was set).
-        if (!grunt.file.exists(filepath)) {
-          grunt.log.warn('Source file "' + filepath + '" not found.');
-          return false;
-        } else {
-          return true;
-        }
-      }).map(function(filepath) {
-        // Read file source.
-        return grunt.file.read(filepath);
-      }).join(grunt.util.normalizelf(options.separator));
+    if (!fs.existsSync(options.target)) {
+      fs.mkdirSync(options.target);
+    }
 
-      // Handle options.
-      src += options.punctuation;
-
-      // Write the destination file.
-      grunt.file.write(f.dest, src);
-
-      // Print a success message.
-      grunt.log.writeln('File "' + f.dest + '" created.');
-    });
+    getTiddlers(options.url, options.template.html, options.target);
   });
 };
