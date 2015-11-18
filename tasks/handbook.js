@@ -17,7 +17,7 @@ module.exports = function(grunt) {
   // Please see the Grunt documentation for more information regarding task
   // creation: http://gruntjs.com/creating-tasks
 
-  function getTiddlers(url, html, target) {
+  function getTiddlers(url, html, target, done) {
     var tiddlers;
     var options = {
       url: url,
@@ -46,10 +46,13 @@ module.exports = function(grunt) {
             fs.mkdirSync(path);
             fs.writeFileSync(path + '/index.json', text);
             fs.copySync(html, path + '/index.html');
-            // fs.writeFileSync(path + '/index.html', handlebarsTemplate);
+            if (i === len-1) {
+              done();
+            }
         }        
       } else {
         console.log(error);
+        done(false);
       }
     }
 
@@ -74,6 +77,6 @@ module.exports = function(grunt) {
       fs.mkdirSync(options.target);
     }
 
-    getTiddlers(options.url, options.template.html, options.target);
+    getTiddlers(options.url, options.template.html, options.target, done);
   });
 };
