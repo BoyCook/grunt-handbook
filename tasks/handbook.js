@@ -8,14 +8,21 @@
 
 'use strict';
 
+var fs = require('fs');
 var http = require('http');
 var request = require('request');
 var url = 'http://sac2m.tiddlyspace.com/bags/sac2m_public/tiddlers?select=tag:handbook&render=1';
+
+var handlebarsTemplate = "{{> html_tag }} {{> head }}  <body> {{> google_analytics }}  {{> menu }}  {{> poster this.poster }}  {{> handbook_content }}  {{> footer }}  </body>  {{> scripts }}  </html>";
 
 module.exports = function(grunt) {
 
   // Please see the Grunt documentation for more information regarding task
   // creation: http://gruntjs.com/creating-tasks
+
+  function writeTiddler(path, data) {
+    fs.writeFileSync(path, data);
+  }
 
   function getTiddlers(next) {
     var tiddlers;
@@ -29,7 +36,24 @@ module.exports = function(grunt) {
     function callback(error, response, body) {
       if (!error && response.statusCode === 200) {
         var tiddlers = JSON.parse(body);
-        console.log(body);
+        for (var i = 0, len = tiddlers.length; i < len; i++) {
+            var tiddler = tiddlers[i];
+            var json = {
+              "description": "SAC2M Handbook - " + tiddler.title,
+              "extends": ["base.json"],
+              "targetPath" : "index.html",
+              "partials%add": [],
+              "depth": "../",
+              "title": tiddler.title,
+              "content": tiddler.render
+            };
+
+            var text = JSON.stringify(json);
+            var path = 'tmp/' + tiddler.title;
+            fs.mkdirSync(path);
+            fs.writeFileSync(path + '/index.json', text);
+            fs.writeFileSync(path + '/index.html', handlebarsTemplate);
+        }        
       } else {
         console.log(error);
       }
@@ -75,7 +99,5 @@ module.exports = function(grunt) {
       // Print a success message.
       grunt.log.writeln('File "' + f.dest + '" created.');
     });
-
   });
-
 };
