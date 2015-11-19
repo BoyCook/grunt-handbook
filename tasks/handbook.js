@@ -29,7 +29,7 @@ module.exports = function(grunt) {
     function callback(error, response, body) {
       if (!error && response.statusCode === 200) {
         var tiddlers = JSON.parse(body);
-        var config = [];
+        var config = [{'gen/*.html': 'templates/html/*.html'}]; //Hack to give base.json context
         for (var i = 0, len = tiddlers.length; i < len; i++) {
             var tiddler = tiddlers[i];
             var json = {
