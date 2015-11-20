@@ -33,6 +33,7 @@ module.exports = function(grunt) {
       options: {
         url: 'http://sac2m.tiddlyspace.com/bags/sac2m_public/tiddlers?select=tag:handbook&render=1',
         target: 'tmp',
+        configFile: 'tmp/config.json',
         template: {
           html: 'test/template.html'
         }
@@ -45,7 +46,6 @@ module.exports = function(grunt) {
     nodeunit: {
       tests: ['test/*_test.js']
     }
-
   });
 
   // Actually load this plugin's task(s).

@@ -11,6 +11,7 @@
 // var fs = require('fs');
 var fs = require('fs-extra');
 var request = require('request');
+var Set2 = require('collections/set');
 
 module.exports = function(grunt) {
 
@@ -29,7 +30,18 @@ module.exports = function(grunt) {
     function callback(error, response, body) {
       if (!error && response.statusCode === 200) {
         var tiddlers = JSON.parse(body);
+        var titles = [];
+        var allTags = new Set2();
         var config = [{'gen/*.html': 'templates/html/*.html'}]; //Hack to give base.json context
+
+        for (var t = 0, tlen = tiddlers.length; t < tlen; t++) {
+            titles.push(tiddlers[t].title);
+            var tiddlerTags = tiddlers[t].tags;
+            for (var x = 0, tagLen = tiddlerTags.length; x < tagLen; x++) {
+                allTags.add(tiddlerTags[x]);
+            }
+        }
+
         for (var i = 0, len = tiddlers.length; i < len; i++) {
             var tiddler = tiddlers[i];
             var json = {
@@ -38,16 +50,20 @@ module.exports = function(grunt) {
               "targetPath" : "index.html",
               "partials%add": [],
               "depth": "../../",
-              "title": tiddler.title,
-              "content": tiddler.render,
-              "tags": tiddler.tags
+              "handbook": {
+                 "title": tiddler.title,
+                 "content": tiddler.render,
+                 "tags": tiddler.tags,
+                 "allTags": allTags.toArray(),
+                 "allTitles": titles                
+              }
             };
             
             var item = {};
-            item['gen/handbook/' + tiddler.title + '/*.html'] = 'templates/html/handbook/' + tiddler.title + '/*.html';
+            item['gen/handbook/' + tiddler.title.toLowerCase() + '/*.html'] = 'templates/html/handbook/' + tiddler.title.toLowerCase() + '/*.html';
             config.push(item);
             var text = JSON.stringify(json);
-            var path = target + '/' + tiddler.title;
+            var path = target + '/' + tiddler.title.toLowerCase();
             fs.mkdirSync(path);
             fs.writeFileSync(path + '/index.json', text);
             fs.copySync(html, path + '/index.html');
