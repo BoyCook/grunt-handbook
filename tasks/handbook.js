@@ -21,15 +21,21 @@ module.exports = function(grunt) {
   function extractFields(tiddlers) {
     var json = {
       titles: [],
-      tags: new Set2()
+      tags: new Set2(),
+      quotes: []
     };
 
     for (var i = 0, len = tiddlers.length; i < len; i++) {
-        json.titles.push(tiddlers[i].title);
-        var tiddlerTags = tiddlers[i].tags;
+      var tiddler = tiddlers[i];
+      if (tiddler.tags.indexOf('quote') > -1) {
+        json.quotes.push(tiddler.render);
+      } else {
+        json.titles.push(tiddler.title);
+        var tiddlerTags = tiddler.tags;
         for (var x = 0, tagLen = tiddlerTags.length; x < tagLen; x++) {
             json.tags.add(tiddlerTags[x]);
-        }
+        }        
+      }
     }
     return json;
   }
@@ -73,6 +79,7 @@ module.exports = function(grunt) {
                  "title": tiddler.title,
                  "content": tiddler.render,
                  "tags": tiddler.tags,
+                 "quotes": fields.quotes,
                  "allTags": fields.tags.toArray(),
                  "allTitles": fields.titles
               }
