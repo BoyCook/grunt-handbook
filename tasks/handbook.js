@@ -85,12 +85,23 @@ module.exports = function(grunt) {
               }
             };
             
-            var item = {};
-            item['gen/handbook/' + tiddler.title.toLowerCase() + '/*.html'] = 'templates/html/handbook/' + tiddler.title.toLowerCase() + '/*.html';
-            config.push(item);
-            var text = JSON.stringify(json);
             var path = target + '/' + tiddler.title.toLowerCase();
-            fs.mkdirSync(path);
+            var file = tiddler.title.toLowerCase() + '/*.html';
+
+            // If it's the homepage then write it to root
+            if (tiddler.tags.indexOf('home') > -1) {
+                path = target;
+                file = '/*.html';
+            } else {
+              fs.mkdirSync(path);
+            }
+
+            var item = {};
+            item['gen/handbook/' + file] = 'templates/html/handbook/' + file;
+            config.push(item);
+
+            var text = JSON.stringify(json);
+            
             fs.writeFileSync(path + '/index.json', text);
             fs.copySync(getTemplate(tiddler.tags, templates), path + '/index.html');
             if (i === len-1) {
