@@ -18,7 +18,35 @@ module.exports = function(grunt) {
   // Please see the Grunt documentation for more information regarding task
   // creation: http://gruntjs.com/creating-tasks
 
-  function getTiddlers(url, html, target, configFile, done) {
+  function extractFields(tiddlers) {
+    var json = {
+      titles: [],
+      tags: new Set2()
+    };
+
+    for (var i = 0, len = tiddlers.length; i < len; i++) {
+        json.titles.push(tiddlers[i].title);
+        var tiddlerTags = tiddlers[i].tags;
+        for (var x = 0, tagLen = tiddlerTags.length; x < tagLen; x++) {
+            json.tags.add(tiddlerTags[x]);
+        }
+    }
+    return json;
+  }
+
+  function getTemplate(tags, templates) {
+    var template = templates.default;
+    for (var i = 0, len = tags.length; i < len; i++) {
+        for (var key in templates) {
+            if (tags[i] === key) {
+              template = templates[key];
+            }
+        }
+    }
+    return template;
+  }
+
+  function getTiddlers(url, templates, target, configFile, done) {
     var tiddlers;
     var options = {
       url: url,
@@ -30,17 +58,8 @@ module.exports = function(grunt) {
     function callback(error, response, body) {
       if (!error && response.statusCode === 200) {
         var tiddlers = JSON.parse(body);
-        var titles = [];
-        var allTags = new Set2();
+        var fields = extractFields(tiddlers);
         var config = [{'gen/*.html': 'templates/html/*.html'}]; //Hack to give base.json context
-
-        for (var t = 0, tlen = tiddlers.length; t < tlen; t++) {
-            titles.push(tiddlers[t].title);
-            var tiddlerTags = tiddlers[t].tags;
-            for (var x = 0, tagLen = tiddlerTags.length; x < tagLen; x++) {
-                allTags.add(tiddlerTags[x]);
-            }
-        }
 
         for (var i = 0, len = tiddlers.length; i < len; i++) {
             var tiddler = tiddlers[i];
@@ -54,8 +73,8 @@ module.exports = function(grunt) {
                  "title": tiddler.title,
                  "content": tiddler.render,
                  "tags": tiddler.tags,
-                 "allTags": allTags.toArray(),
-                 "allTitles": titles                
+                 "allTags": fields.tags.toArray(),
+                 "allTitles": fields.titles
               }
             };
             
@@ -66,7 +85,7 @@ module.exports = function(grunt) {
             var path = target + '/' + tiddler.title.toLowerCase();
             fs.mkdirSync(path);
             fs.writeFileSync(path + '/index.json', text);
-            fs.copySync(html, path + '/index.html');
+            fs.copySync(getTemplate(tiddler.tags, templates), path + '/index.html');
             if (i === len-1) {
               fs.writeFileSync(configFile, JSON.stringify(config));
               done();
@@ -91,7 +110,7 @@ module.exports = function(grunt) {
     });
 
     console.log('Using source URL: ' + options.url);
-    console.log('Using HTML tempate: ' + options.template.html);
+    console.log('Using HTML tempates: ' + JSON.stringify(options.templates));
     console.log('Using target: ' + options.target);
     console.log('Using config file: ' + options.configFile);
 
@@ -99,6 +118,6 @@ module.exports = function(grunt) {
       fs.mkdirSync(options.target);
     }
 
-    getTiddlers(options.url, options.template.html, options.target, options.configFile, done);
+    getTiddlers(options.url, options.templates, options.target, options.configFile, done);
   });
 };
