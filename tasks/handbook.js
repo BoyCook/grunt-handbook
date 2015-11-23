@@ -18,7 +18,31 @@ module.exports = function(grunt) {
   // Please see the Grunt documentation for more information regarding task
   // creation: http://gruntjs.com/creating-tasks
 
+  function sortAndIndex(data) {
+    var groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
+                  'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+    var indexed = {};
+    data.sort();
+
+    for (var i = 0, len = groups.length; i < len; i++) {
+      for (var x = 0, xlen = data.length; x < xlen; x++) {
+        var group = groups[i];
+        var item = data[x];
+        // It matches the group
+        if (group.toLowerCase() === item.substring(0,1).toLowerCase()) {
+          //Group is not in the indexed list
+          if (!indexed.hasOwnProperty(group)) {
+            indexed[group] = [];
+          }
+          indexed[group].push(item);
+        }
+      }      
+    }
+    return indexed;
+  }
+
   function extractFields(tiddlers) {
+    var tmpTitles = [];
     var json = {
       titles: [],
       tags: new Set2(),
@@ -30,13 +54,16 @@ module.exports = function(grunt) {
       if (tiddler.tags.indexOf('quote') > -1) {
         json.quotes.push(tiddler.render);
       } else {
-        json.titles.push(tiddler.title);
+        tmpTitles.push(tiddler.title);
         var tiddlerTags = tiddler.tags;
         for (var x = 0, tagLen = tiddlerTags.length; x < tagLen; x++) {
             json.tags.add(tiddlerTags[x]);
         }        
       }
     }
+
+    json.titles = sortAndIndex(tmpTitles);
+
     return json;
   }
 
@@ -81,7 +108,7 @@ module.exports = function(grunt) {
                  "tags": tiddler.tags,
                  "quotes": fields.quotes,
                  "allTags": fields.tags.toArray(),
-                 "allTitles": fields.titles
+                 "index": fields.titles
               }
             };
             
