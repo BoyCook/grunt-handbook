@@ -53,7 +53,7 @@ module.exports = function(grunt) {
       var tiddler = tiddlers[i];
       if (tiddler.tags.indexOf('quote') > -1) {
         json.quotes.push(tiddler.render);
-      } else {
+      } else if (tiddler.tags.indexOf('home') === -1) {
         tmpTitles.push(tiddler.title);
         var tiddlerTags = tiddler.tags;
         for (var x = 0, tagLen = tiddlerTags.length; x < tagLen; x++) {
@@ -102,6 +102,7 @@ module.exports = function(grunt) {
               "targetPath" : "index.html",
               "partials%add": [],
               "depth": "../../",
+              "title": "SAC2M Handbook - " + tiddler.title,
               "handbook": {
                  "title": tiddler.title,
                  "content": tiddler.render,
