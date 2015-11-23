@@ -92,6 +92,7 @@ module.exports = function(grunt) {
             if (tiddler.tags.indexOf('home') > -1) {
                 path = target;
                 file = '/*.html';
+                json.depth = "../";
             } else {
               fs.mkdirSync(path);
             }
