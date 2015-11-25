@@ -98,13 +98,14 @@ module.exports = function(grunt) {
             var tiddler = tiddlers[i];
             var json = {
               "description": "SAC2M Handbook - " + tiddler.title,
+              "title": "SAC2M Handbook - " + tiddler.title,
               "extends": ["base.json"],
               "targetPath" : "index.html",
               "js_files%add": [
                 "js/handbook.js"
               ],
               "depth": "../../",
-              "title": "SAC2M Handbook - " + tiddler.title,
+              "navOptions": true,
               "handbook": {
                  "title": tiddler.title,
                  "content": tiddler.render,
