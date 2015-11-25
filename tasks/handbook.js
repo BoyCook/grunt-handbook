@@ -100,7 +100,9 @@ module.exports = function(grunt) {
               "description": "SAC2M Handbook - " + tiddler.title,
               "extends": ["base.json"],
               "targetPath" : "index.html",
-              "partials%add": [],
+              "js_files%add": [
+                "js/handbook.js"
+              ],
               "depth": "../../",
               "title": "SAC2M Handbook - " + tiddler.title,
               "handbook": {
