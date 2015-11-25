@@ -79,7 +79,7 @@ module.exports = function(grunt) {
     return template;
   }
 
-  function getTiddlers(url, templates, target, configFile, done) {
+  function getTiddlers(url, templates, target, configFile, jsonFile, done) {
     var tiddlers;
     var options = {
       url: url,
@@ -138,6 +138,7 @@ module.exports = function(grunt) {
             fs.copySync(getTemplate(tiddler.tags, templates), path + '/index.html');
             if (i === len-1) {
               fs.writeFileSync(configFile, JSON.stringify(config));
+              fs.writeFileSync(jsonFile, JSON.stringify(tiddlers));
               done();
             }
         }        
@@ -161,13 +162,15 @@ module.exports = function(grunt) {
 
     console.log('Using source URL: ' + options.url);
     console.log('Using HTML tempates: ' + JSON.stringify(options.templates));
-    console.log('Using target: ' + options.target);
-    console.log('Using config file: ' + options.configFile);
+    console.log('Setting target: ' + options.target);
+    console.log('Setting config file: ' + options.configFile);
+    console.log('Setting JSON file: ' + options.jsonFile);
 
     if (!fs.existsSync(options.target)) {
       fs.mkdirSync(options.target);
     }
 
-    getTiddlers(options.url, options.templates, options.target, options.configFile, done);
+    getTiddlers(options.url, options.templates, options.target,
+                options.configFile, options.jsonFile, done);
   });
 };
