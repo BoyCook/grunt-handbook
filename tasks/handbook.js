@@ -34,7 +34,7 @@ module.exports = function(grunt) {
           if (!indexed.hasOwnProperty(group)) {
             indexed[group] = [];
           }
-          indexed[group].push(item);
+          indexed[group].push({title: item, href: item.toLowerCase()});
         }
       }      
     }
@@ -44,7 +44,7 @@ module.exports = function(grunt) {
   function extractFields(tiddlers) {
     var tmpTitles = [];
     var json = {
-      titles: [],
+      index: {},
       tags: new Set2(),
       quotes: []
     };
@@ -62,7 +62,7 @@ module.exports = function(grunt) {
       }
     }
 
-    json.titles = sortAndIndex(tmpTitles);
+    json.index = sortAndIndex(tmpTitles);
 
     return json;
   }
@@ -112,7 +112,7 @@ module.exports = function(grunt) {
                  "tags": tiddler.tags,
                  "quotes": fields.quotes,
                  "allTags": fields.tags.toArray(),
-                 "index": fields.titles
+                 "index": fields.index
               }
             };
             
