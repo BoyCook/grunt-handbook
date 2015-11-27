@@ -173,15 +173,13 @@ module.exports = function(grunt) {
           }
         } 
 
-        if (i === len-1) {
-          fs.writeFileSync(config.configFile, JSON.stringify(buildFiles));
-          fs.writeFileSync(config.jsonFile, JSON.stringify({
-            "titles": fields.titles,
-            "index": fields.index,
-            "tags": fields.tagIndex
-          }));
-          done();
-        }     
+        fs.writeFileSync(config.configFile, JSON.stringify(buildFiles));
+        fs.writeFileSync(config.jsonFile, JSON.stringify({
+          "titles": fields.titles,
+          "index": fields.index,
+          "tags": fields.tagIndex
+        }));
+        done();
       } else {
         console.log(error);
         done(false);
