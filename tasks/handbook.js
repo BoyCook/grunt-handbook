@@ -154,11 +154,22 @@ module.exports = function(grunt) {
                  "title": tiddler.title,
                  "content": tiddler.render,
                  "tags": tiddler.tags,
-                 "allTags": fields.tags.toArray(),
+                 "titles": fields.titles,
                  "index": fields.index
               }
             };
           
+            if (i === 0) {
+              json.handbook.back = '#';              
+              json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
+            } else if (i === tiddlers.length-1) {
+              json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
+              json.handbook.next = '#';              
+            } else {
+              json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
+              json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
+            }
+
             var safeTitle = getURLSafeTitle(tiddler.title.toLowerCase());
             var path = config.target + '/' + safeTitle;
             var file = safeTitle + '/*.html';
