@@ -34,7 +34,9 @@ module.exports = function(grunt) {
         url: 'http://sac2m.tiddlyspace.com/bags/sac2m_public/tiddlers?select=tag:handbook&render=1',
         target: 'tmp',
         configFile: 'tmp/config.json',
-        jsonFile: 'tmp/tags.json',
+        jsonFile: 'tmp/index.json',
+        ignoreTags: ['quote'],
+        stripTags: ['handbook'],
         templates: {
           "default": 'test/template.html',
           home: 'test/template2.html'

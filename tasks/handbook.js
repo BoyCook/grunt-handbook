@@ -14,15 +14,47 @@ var request = require('request');
 var Set2 = require('collections/set');
 
 module.exports = function(grunt) {
+  var config = {};
 
-  // Please see the Grunt documentation for more information regarding task
-  // creation: http://gruntjs.com/creating-tasks
+  function getURLSafeTitle(title) {
+    return title.toLowerCase().replace(/\s+/g, '-');
+  }
 
-  function sortAndIndex(data) {
+  function ignore(tiddler) {
+    for (var i = 0, len = tiddler.tags.length; i < len; i++) {
+      for (var x = 0, xlen = config.ignoreTags.length; x < xlen; x++) {
+        if (tiddler.tags[i] === config.ignoreTags[x]) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function stripTags(tiddler) {
+    for (var i = 0, len = tiddler.tags.length; i < len; i++) {
+      for (var x = 0, xlen = config.stripTags.length; x < xlen; x++) {
+        var strip = config.stripTags[x];
+        if (tiddler.tags[i] === strip) {
+          tiddler.tags.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  function buildTitles(tmp) {
+    var titles = [];
+    for (var i = 0, len = tmp.length; i < len; i++) {
+      var item = tmp[i];
+      titles.push({title: item, href: getURLSafeTitle(item)});
+    }
+    return titles;
+  }
+
+  function buildIndex(data) {
     var groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
                   'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
     var indexed = {};
-    data.sort();
 
     for (var i = 0, len = groups.length; i < len; i++) {
       for (var x = 0, xlen = data.length; x < xlen; x++) {
@@ -34,7 +66,7 @@ module.exports = function(grunt) {
           if (!indexed.hasOwnProperty(group)) {
             indexed[group] = [];
           }
-          indexed[group].push({title: item, href: item.toLowerCase()});
+          indexed[group].push({title: item, href: getURLSafeTitle(item)});
         }
       }      
     }
@@ -45,41 +77,52 @@ module.exports = function(grunt) {
     var tmpTitles = [];
     var json = {
       index: {},
+      titles: [],
       tags: new Set2(),
-      quotes: []
+      tagIndex: {}
     };
 
     for (var i = 0, len = tiddlers.length; i < len; i++) {
       var tiddler = tiddlers[i];
-      if (tiddler.tags.indexOf('quote') > -1) {
-        json.quotes.push(tiddler.render);
-      } else if (tiddler.tags.indexOf('home') === -1) {
+      stripTags(tiddler);
+      if (!ignore(tiddler)) {
         tmpTitles.push(tiddler.title);
         var tiddlerTags = tiddler.tags;
         for (var x = 0, tagLen = tiddlerTags.length; x < tagLen; x++) {
-            json.tags.add(tiddlerTags[x]);
+          var tag = tiddlerTags[x];
+          json.tags.add(tag);
+
+          // if (!tmpIndex.hasOwnProperty[tag]) {
+          if (!(tag in json.tagIndex)) {
+            json.tagIndex[tag] = [];
+          }
+          json.tagIndex[tag].push({
+            "title": tiddler.title,
+            "uri": getURLSafeTitle(tiddler.title)
+          });
         }        
       }
     }
 
-    json.index = sortAndIndex(tmpTitles);
-
+    tmpTitles.sort();
+    json.titles = buildTitles(tmpTitles);
+    json.index = buildIndex(tmpTitles);
     return json;
   }
 
-  function getTemplate(tags, templates) {
-    var template = templates.default;
+  function getTemplate(tags) {
+    var template = config.templates.default;
     for (var i = 0, len = tags.length; i < len; i++) {
-        for (var key in templates) {
+        for (var key in config.templates) {
             if (tags[i] === key) {
-              template = templates[key];
+              template = config.templates[key];
             }
         }
     }
     return template;
   }
 
-  function getTiddlers(url, templates, target, configFile, jsonFile, done) {
+  function getTiddlers(url, done) {
     var tiddlers;
     var options = {
       url: url,
@@ -90,12 +133,13 @@ module.exports = function(grunt) {
      
     function callback(error, response, body) {
       if (!error && response.statusCode === 200) {
-        var tiddlers = JSON.parse(body);
+        var tiddlers = JSON.parse(body);        
         var fields = extractFields(tiddlers);
-        var config = [{'gen/*.html': 'templates/html/*.html'}]; //Hack to give base.json context
+        var buildFiles = [{'gen/*.html': 'templates/html/*.html'}]; //Hack to give base.json context
 
         for (var i = 0, len = tiddlers.length; i < len; i++) {
-            var tiddler = tiddlers[i];
+          var tiddler = tiddlers[i];
+          if (!ignore(tiddler)) {
             var json = {
               "description": "SAC2M Handbook - " + tiddler.title,
               "title": "SAC2M Handbook - " + tiddler.title,
@@ -110,38 +154,34 @@ module.exports = function(grunt) {
                  "title": tiddler.title,
                  "content": tiddler.render,
                  "tags": tiddler.tags,
-                 "quotes": fields.quotes,
                  "allTags": fields.tags.toArray(),
                  "index": fields.index
               }
             };
-            
-            var path = target + '/' + tiddler.title.toLowerCase();
-            var file = tiddler.title.toLowerCase() + '/*.html';
-
-            // If it's the homepage then write it to root
-            if (tiddler.tags.indexOf('home') > -1) {
-                path = target;
-                file = '/*.html';
-                json.depth = "../";
-            } else {
-              fs.mkdirSync(path);
-            }
-
+          
+            var safeTitle = getURLSafeTitle(tiddler.title.toLowerCase());
+            var path = config.target + '/' + safeTitle;
+            var file = safeTitle + '/*.html';
             var item = {};
-            item['gen/handbook/' + file] = 'templates/html/handbook/' + file;
-            config.push(item);
-
-            var text = JSON.stringify(json);
             
-            fs.writeFileSync(path + '/index.json', text);
-            fs.copySync(getTemplate(tiddler.tags, templates), path + '/index.html');
-            if (i === len-1) {
-              fs.writeFileSync(configFile, JSON.stringify(config));
-              fs.writeFileSync(jsonFile, JSON.stringify(tiddlers));
-              done();
-            }
-        }        
+            item['gen/handbook/' + file] = 'templates/html/handbook/' + file;
+            buildFiles.push(item);
+            
+            fs.mkdirSync(path);
+            fs.writeFileSync(path + '/index.json', JSON.stringify(json));
+            fs.copySync(getTemplate(tiddler.tags), path + '/index.html');
+          }
+        } 
+
+        if (i === len-1) {
+          fs.writeFileSync(config.configFile, JSON.stringify(buildFiles));
+          fs.writeFileSync(config.jsonFile, JSON.stringify({
+            "titles": fields.titles,
+            "index": fields.index,
+            "tags": fields.tagIndex
+          }));
+          done();
+        }     
       } else {
         console.log(error);
         done(false);
@@ -151,6 +191,8 @@ module.exports = function(grunt) {
     request(options, callback);
   }
 
+  // Please see the Grunt documentation for more information regarding task
+  // creation: http://gruntjs.com/creating-tasks
   grunt.registerTask('sac2mHandbook', 'Generating the Scaling Agile Handbook.', function() {
     // Merge task-specific and/or target-specific options with these defaults.
     var done = this.async();
@@ -160,17 +202,18 @@ module.exports = function(grunt) {
       separator: ', '
     });
 
-    console.log('Using source URL: ' + options.url);
-    console.log('Using HTML tempates: ' + JSON.stringify(options.templates));
-    console.log('Setting target: ' + options.target);
-    console.log('Setting config file: ' + options.configFile);
-    console.log('Setting JSON file: ' + options.jsonFile);
+    config = options;
 
-    if (!fs.existsSync(options.target)) {
-      fs.mkdirSync(options.target);
+    console.log('Using source URL: ' + options.url);
+    console.log('Using HTML tempates: ' + JSON.stringify(config.templates));
+    console.log('Setting target: ' + config.target);
+    console.log('Setting config file: ' + config.configFile);
+    console.log('Setting JSON file: ' + config.jsonFile);
+
+    if (!fs.existsSync(config.target)) {
+      fs.mkdirSync(config.target);
     }
 
-    getTiddlers(options.url, options.templates, options.target,
-                options.configFile, options.jsonFile, done);
+    getTiddlers(options.url, done);
   });
 };
