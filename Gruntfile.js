@@ -37,6 +37,10 @@ module.exports = function(grunt) {
         jsonFile: 'tmp/index.json',
         ignoreTags: ['quote'],
         stripTags: ['handbook'],
+        siteMap: {
+          url: 'https://code/red/handbook/',
+          file: 'tmp/sitemap.xml'
+        },
         templates: {
           "default": 'test/template.html',
           home: 'test/template2.html'

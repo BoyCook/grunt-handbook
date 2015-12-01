@@ -16,6 +16,21 @@ var Set2 = require('collections/set');
 module.exports = function(grunt) {
   var config = {};
 
+  function generateSiteMap(url, titles) {
+    var items = "";
+
+    for (var i = 0, len = titles.length; i < len; i++) {
+      items += '<url><loc>' + url +  titles[i].href + '</loc>' +
+               '<changefreq>daily</changefreq>' +
+               '<priority>0.8</priority></url>';
+    }
+
+    return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+              "<urlset xmlns=\"http://www.google.com/schemas/sitemap/0.9\">" +
+              items +
+              "</urlset>";
+  }
+
   function getURLSafeTitle(title) {
     return title.toLowerCase().replace(/\s+/g, '-');
   }
@@ -185,6 +200,7 @@ module.exports = function(grunt) {
         } 
 
         fs.writeFileSync(config.configFile, JSON.stringify(buildFiles));
+        fs.writeFileSync(config.siteMap.file, generateSiteMap(config.siteMap.url, fields.titles));
         fs.writeFileSync(config.jsonFile, JSON.stringify({
           "titles": fields.titles,
           "index": fields.index,
