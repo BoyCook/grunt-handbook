@@ -8,10 +8,10 @@
 
 'use strict';
 
-// var fs = require('fs');
 var fs = require('fs-extra');
 var request = require('request');
 var Set2 = require('collections/set');
+var xml2js = require('xml2js').parseString;
 
 module.exports = function(grunt) {
   var config = {};
@@ -31,30 +31,33 @@ module.exports = function(grunt) {
               "</urlset>";
   }
 
+  function parseRender(err, data) {
+    // if (data.div.ul) {
+    //   console.log(JSON.stringify(data.div.ul[0].li[0]) + '\n\n');
+    // }
+    console.log(JSON.stringify(data) + '\n\n');
+  }
+
   function getURLSafeTitle(title) {
     return title.toLowerCase().replace(/\s+/g, '-');
   }
 
-  function ignore(tiddler) {
-    for (var i = 0, len = tiddler.tags.length; i < len; i++) {
-      for (var x = 0, xlen = config.ignoreTags.length; x < xlen; x++) {
-        if (tiddler.tags[i] === config.ignoreTags[x]) {
-          return true;
+  function compare(set1, set2, match, success) {
+    for (var i = 0, len1 = set1.length; i < len1; i++) {
+      for (var x = 0, len2 = set2.length; x < len2; x++) {
+        if (match(set1[i], set2[x])) {
+          success(i, x);
         }
       }
-    }
-    return false;
+    }    
   }
 
   function stripTags(tiddler) {
-    for (var i = 0, len = tiddler.tags.length; i < len; i++) {
-      for (var x = 0, xlen = config.stripTags.length; x < xlen; x++) {
-        var strip = config.stripTags[x];
-        if (tiddler.tags[i] === strip) {
-          tiddler.tags.splice(i, 1);
-        }
-      }
-    }
+    compare(tiddler.tags, config.tags.strip, function(i, x) {
+      return (i === x);
+    }, function(i, x) {
+      tiddler.tags.splice(i, 1);
+    });
   }
 
   function buildTitles(tmp) {
@@ -71,20 +74,16 @@ module.exports = function(grunt) {
                   'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
     var indexed = {};
 
-    for (var i = 0, len = groups.length; i < len; i++) {
-      for (var x = 0, xlen = data.length; x < xlen; x++) {
-        var group = groups[i];
-        var item = data[x];
-        // It matches the group
-        if (group.toLowerCase() === item.substring(0,1).toLowerCase()) {
-          //Group is not in the indexed list
-          if (!indexed.hasOwnProperty(group)) {
-            indexed[group] = [];
-          }
-          indexed[group].push({title: item, href: getURLSafeTitle(item)});
-        }
-      }      
-    }
+    compare(groups, data, function(i, x) {
+      return (i.toLowerCase() === x.substring(0,1).toLowerCase());
+    }, function(i, x) {
+      var group = groups[i];
+      var item = data[x];
+      if (!indexed.hasOwnProperty(group)) {
+        indexed[group] = [];
+      }
+      indexed[group].push({title: item, href: getURLSafeTitle(item)});
+    });
     return indexed;
   }
 
@@ -100,23 +99,21 @@ module.exports = function(grunt) {
     for (var i = 0, len = tiddlers.length; i < len; i++) {
       var tiddler = tiddlers[i];
       stripTags(tiddler);
-      if (!ignore(tiddler)) {
-        tmpTitles.push(tiddler.title);
-        var tiddlerTags = tiddler.tags;
-        for (var x = 0, tagLen = tiddlerTags.length; x < tagLen; x++) {
-          var tag = tiddlerTags[x];
-          json.tags.add(tag);
+      tmpTitles.push(tiddler.title);
+      var tiddlerTags = tiddler.tags;
+      for (var x = 0, tagLen = tiddlerTags.length; x < tagLen; x++) {
+        var tag = tiddlerTags[x];
+        json.tags.add(tag);
 
-          // if (!tmpIndex.hasOwnProperty[tag]) {
-          if (!(tag in json.tagIndex)) {
-            json.tagIndex[tag] = [];
-          }
-          json.tagIndex[tag].push({
-            "title": tiddler.title,
-            "uri": getURLSafeTitle(tiddler.title)
-          });
-        }        
-      }
+        // if (!tmpIndex.hasOwnProperty[tag]) {
+        if (!(tag in json.tagIndex)) {
+          json.tagIndex[tag] = [];
+        }
+        json.tagIndex[tag].push({
+          "title": tiddler.title,
+          "uri": getURLSafeTitle(tiddler.title)
+        });
+      }        
     }
 
     tmpTitles.sort();
@@ -154,49 +151,51 @@ module.exports = function(grunt) {
 
         for (var i = 0, len = tiddlers.length; i < len; i++) {
           var tiddler = tiddlers[i];
-          if (!ignore(tiddler)) {
-            var json = {
-              "description": "SAC2M Handbook - " + tiddler.title,
-              "title": "SAC2M Handbook - " + tiddler.title,
-              "extends": ["base.json"],
-              "targetPath" : "index.html",
-              "js_files%add": [
-                "js/handbook.js"
-              ],
-              "depth": "../../",
-              "navOptions": true,
-              "handbook": {
-                 "title": tiddler.title,
-                 "content": tiddler.render,
-                 "tags": tiddler.tags,
-                 "titles": fields.titles,
-                 "index": fields.index
-              }
-            };
-          
-            if (i === 0) {
-              json.handbook.back = '#';              
-              json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
-            } else if (i === tiddlers.length-1) {
-              json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
-              json.handbook.next = '#';              
-            } else {
-              json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
-              json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
+          var json = {
+            "description": "SAC2M Handbook - " + tiddler.title,
+            "title": "SAC2M Handbook - " + tiddler.title,
+            "extends": ["base.json"],
+            "targetPath" : "index.html",
+            "js_files%add": [
+              "js/handbook.js"
+            ],
+            "depth": "../../",
+            "navOptions": true,
+            "handbook": {
+               "title": tiddler.title,
+               "back": '#',
+               "next": '#',
+               "content": tiddler.render,
+               "tags": tiddler.tags,
+               "titles": fields.titles,
+               "index": fields.index
             }
+          };
 
-            var safeTitle = getURLSafeTitle(tiddler.title.toLowerCase());
-            var path = config.target + '/' + safeTitle;
-            var file = safeTitle + '/*.html';
-            var item = {};
-            
-            item['gen/handbook/' + file] = 'templates/html/handbook/' + file;
-            buildFiles.push(item);
-            
-            fs.mkdirSync(path);
-            fs.writeFileSync(path + '/index.json', JSON.stringify(json));
-            fs.copySync(getTemplate(tiddler.tags), path + '/index.html');
+          // xml2js(tiddler.render, parseRender);
+
+          if (i === 0) {
+            json.handbook.back = '#';              
+            json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
+          } else if (i === tiddlers.length-1) {
+            json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
+            json.handbook.next = '#';              
+          } else {
+            json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
+            json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
           }
+
+          var safeTitle = getURLSafeTitle(tiddler.title.toLowerCase());
+          var path = config.target + '/' + safeTitle;
+          var file = safeTitle + '/*.html';
+          var item = {};
+          
+          item['gen/handbook/' + file] = 'templates/html/handbook/' + file;
+          buildFiles.push(item);
+          
+          fs.mkdirSync(path);
+          fs.writeFileSync(path + '/index.json', JSON.stringify(json));
+          fs.copySync(getTemplate(tiddler.tags), path + '/index.html');
         } 
 
         fs.writeFileSync(config.configFile, JSON.stringify(buildFiles));
@@ -239,6 +238,11 @@ module.exports = function(grunt) {
       fs.mkdirSync(config.target);
     }
 
-    getTiddlers(options.url, done);
+    var removeParams = '';
+    for (var i = 0, len = options.tags.remove.length; i < len; i++) {
+      removeParams += '&select=tag:!' + options.tags.remove[i];
+    }    
+
+    getTiddlers(options.url + removeParams, done);
   });
 };

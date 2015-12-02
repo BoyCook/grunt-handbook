@@ -35,8 +35,10 @@ module.exports = function(grunt) {
         target: 'tmp',
         configFile: 'tmp/config.json',
         jsonFile: 'tmp/index.json',
-        ignoreTags: ['quote'],
-        stripTags: ['handbook'],
+        tags: {
+          remove: ['quote'],
+          strip: ['handbook']
+        },
         siteMap: {
           url: 'https://code/red/handbook/',
           file: 'tmp/sitemap.xml'
