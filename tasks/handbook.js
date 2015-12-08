@@ -161,6 +161,7 @@ module.exports = function(grunt) {
             ],
             "depth": "../../",
             "navOptions": true,
+            "share": true,
             "handbook": {
                "title": tiddler.title,
                "back": '#',
