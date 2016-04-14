@@ -11,7 +11,8 @@
 var fs = require('fs-extra');
 var request = require('request');
 var Set2 = require('collections/set');
-var xml2js = require('xml2js').parseString;
+var xml2js = require('xml2js');
+var tiddlerFields;
 
 module.exports = function(grunt) {
   var config = {};
@@ -32,10 +33,29 @@ module.exports = function(grunt) {
   }
 
   function parseRender(err, data) {
-    // if (data.div.ul) {
-    //   console.log(JSON.stringify(data.div.ul[0].li[0]) + '\n\n');
-    // }
-    console.log(JSON.stringify(data) + '\n\n');
+    findNode(data, 'a');
+  }
+
+  function findNode(data, match, callback){
+    for (var key in data) {
+      if (data.hasOwnProperty(key)) {
+        var obj = data[key];
+        if (key === match) {
+          for (var i = 0, len = obj.length; i < len; i++) {
+            var href = obj[i]['$'].href;
+            if (tiddlerFields.tiddlerTitles.indexOf(href) === -1) {
+              console.log('Not Found:' + href);
+              delete data[key];
+            }
+          }
+          if (callback) {
+            callback(obj);
+          }
+        } else if (typeof obj === "object") {
+           findNode(obj, match);
+        }
+      }
+    }
   }
 
   function getURLSafeTitle(title) {
@@ -92,6 +112,7 @@ module.exports = function(grunt) {
     var json = {
       index: {},
       titles: [],
+      tiddlerTitles: [],
       tags: new Set2(),
       tagIndex: {}
     };
@@ -117,6 +138,7 @@ module.exports = function(grunt) {
     }
 
     tmpTitles.sort();
+    json.tiddlerTitles = tmpTitles;
     json.titles = buildTitles(tmpTitles);
     json.index = buildIndex(tmpTitles);
     return json;
@@ -147,6 +169,7 @@ module.exports = function(grunt) {
       if (!error && response.statusCode === 200) {
         var tiddlers = JSON.parse(body);        
         var fields = extractFields(tiddlers);
+        tiddlerFields = fields;
         var buildFiles = [{'gen/*.html': 'templates/html/*.html'}]; //Hack to give base.json context
 
         for (var i = 0, len = tiddlers.length; i < len; i++) {
@@ -173,7 +196,14 @@ module.exports = function(grunt) {
             }
           };
 
-          // xml2js(tiddler.render, parseRender);
+          var render;
+
+          xml2js.parseString(tiddler.render, function(err, data){
+            findNode(data, 'a');
+            render = data;
+          });          
+          var builder = new xml2js.Builder();
+          json.handbook.content = builder.buildObject(render);
 
           if (i === 0) {
             json.handbook.back = '#';              
@@ -185,6 +215,8 @@ module.exports = function(grunt) {
             json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
             json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
           }
+
+          // console.log(tiddler.render);
 
           var safeTitle = getURLSafeTitle(tiddler.title.toLowerCase());
           var path = config.target + '/' + safeTitle;
