@@ -32,8 +32,13 @@ module.exports = function(grunt) {
               "</urlset>";
   }
 
-  function parseRender(err, data) {
-    findNode(data, 'a');
+  function anchorReplacer(match, p1, offset, string) {
+    if (match.indexOf('tiddlyLinkNonExisting') === -1) {
+      return match;
+    } else {
+      var patt = /href="(.*?)"/g;
+      return patt.exec(match)[1];
+    }
   }
 
   function findNode(data, match, callback){
@@ -44,8 +49,7 @@ module.exports = function(grunt) {
           for (var i = 0, len = obj.length; i < len; i++) {
             var href = obj[i]['$'].href;
             if (tiddlerFields.tiddlerTitles.indexOf(href) === -1) {
-              console.log('Not Found:' + href);
-              delete data[key];
+              data[key] = {"span": [href]};
             }
           }
           if (callback) {
@@ -196,14 +200,16 @@ module.exports = function(grunt) {
             }
           };
 
-          var render;
+          var match = /<a[\s]+([^>]+)>((?:.(?!\<\/a\>))*.)<\/a>/g;
+          json.handbook.content = tiddler.render.replace(match, anchorReplacer);
 
-          xml2js.parseString(tiddler.render, function(err, data){
-            findNode(data, 'a');
-            render = data;
-          });          
-          var builder = new xml2js.Builder();
-          json.handbook.content = builder.buildObject(render);
+          // xml2js.parseString(tiddler.render, function(err, data) {
+          //   // console.log(JSON.stringify(data) + '\n\n');
+          //   findNode(data, 'a');
+          //   render = data;
+          // });          
+          // var builder = new xml2js.Builder();
+          // json.handbook.content = builder.buildObject(render);
 
           if (i === 0) {
             json.handbook.back = '#';              
@@ -215,8 +221,6 @@ module.exports = function(grunt) {
             json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
             json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
           }
-
-          // console.log(tiddler.render);
 
           var safeTitle = getURLSafeTitle(tiddler.title.toLowerCase());
           var path = config.target + '/' + safeTitle;
