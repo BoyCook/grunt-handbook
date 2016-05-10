@@ -37,7 +37,7 @@ module.exports = function(grunt) {
       return match;
     } else {
       var patt = /href="(.*?)"/g;
-      return patt.exec(match)[1];
+      return patt.exec(match)[1].replace('%20', ' ');
     }
   }
 
