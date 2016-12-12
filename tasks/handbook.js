@@ -160,6 +160,90 @@ module.exports = function(grunt) {
     return template;
   }
 
+  function generateDirectories(tiddlers, done) {
+      var fields = extractFields(tiddlers);
+      tiddlerFields = fields;
+      var buildFiles = [{'gen/*.html': 'templates/html/*.html'}]; //Hack to give base.json context
+
+      for (var i = 0, len = tiddlers.length; i < len; i++) {
+        var tiddler = tiddlers[i];
+        var json = {
+          "description": "SAC2M Handbook - " + tiddler.title,
+          "title": "SAC2M Handbook - " + tiddler.title,
+          "extends": ["base.json"],
+          "targetPath" : "index.html",
+          "js_files%add": [
+            "js/handbook.js"
+          ],
+          "depth": "../../",
+          "navOptions": true,
+          "share": true,
+          "handbook": {
+             "title": tiddler.title,
+             "back": '#',
+             "next": '#',
+             "content": tiddler.render,
+             "tags": tiddler.tags,
+             "titles": fields.titles,
+             "index": fields.index
+          }
+        };
+
+        var match = /<a[\s]+([^>]+)>((?:.(?!\<\/a\>))*.)<\/a>/g;
+        json.handbook.content = tiddler.render.replace(match, anchorReplacer);
+
+        // xml2js.parseString(tiddler.render, function(err, data) {
+        //   // console.log(JSON.stringify(data) + '\n\n');
+        //   findNode(data, 'a');
+        //   render = data;
+        // });          
+        // var builder = new xml2js.Builder();
+        // json.handbook.content = builder.buildObject(render);
+
+        if (i === 0) {
+          json.handbook.back = '#';              
+          json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
+        } else if (i === tiddlers.length-1) {
+          json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
+          json.handbook.next = '#';              
+        } else {
+          json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
+          json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
+        }
+
+        var safeTitle = getURLSafeTitle(tiddler.title.toLowerCase());
+        var path = config.target + '/' + safeTitle;
+        var file = safeTitle + '/*.html';
+        var item = {};
+        
+        item['gen/handbook/' + file] = 'templates/html/handbook/' + file;
+        buildFiles.push(item);
+        
+        fs.mkdirSync(path);
+        fs.writeFileSync(path + '/index.json', JSON.stringify(json));
+        fs.copySync(getTemplate(tiddler.tags), path + '/index.html');
+      } 
+
+      fs.writeFileSync(config.configFile, JSON.stringify(buildFiles));
+      fs.writeFileSync(config.siteMap.file, generateSiteMap(config.siteMap.url, fields.titles));
+      fs.writeFileSync(config.jsonFile, JSON.stringify({
+        "titles": fields.titles,
+        "index": fields.index,
+        "tags": fields.tagIndex
+      }));
+      done();
+  }
+
+  function readTiddlers(file, done) {
+    fs.readFile(file, 'utf8', function (err,data) {
+      if (err) {
+        done(false)
+      }
+      // console.log(data);
+      generateDirectories(JSON.parse(data), done);
+    });
+  }
+
   function getTiddlers(url, done) {
     var tiddlers;
     var options = {
@@ -171,82 +255,11 @@ module.exports = function(grunt) {
      
     function callback(error, response, body) {
       if (!error && response.statusCode === 200) {
-        var tiddlers = JSON.parse(body);        
-        var fields = extractFields(tiddlers);
-        tiddlerFields = fields;
-        var buildFiles = [{'gen/*.html': 'templates/html/*.html'}]; //Hack to give base.json context
-
-        for (var i = 0, len = tiddlers.length; i < len; i++) {
-          var tiddler = tiddlers[i];
-          var json = {
-            "description": "SAC2M Handbook - " + tiddler.title,
-            "title": "SAC2M Handbook - " + tiddler.title,
-            "extends": ["base.json"],
-            "targetPath" : "index.html",
-            "js_files%add": [
-              "js/handbook.js"
-            ],
-            "depth": "../../",
-            "navOptions": true,
-            "share": true,
-            "handbook": {
-               "title": tiddler.title,
-               "back": '#',
-               "next": '#',
-               "content": tiddler.render,
-               "tags": tiddler.tags,
-               "titles": fields.titles,
-               "index": fields.index
-            }
-          };
-
-          var match = /<a[\s]+([^>]+)>((?:.(?!\<\/a\>))*.)<\/a>/g;
-          json.handbook.content = tiddler.render.replace(match, anchorReplacer);
-
-          // xml2js.parseString(tiddler.render, function(err, data) {
-          //   // console.log(JSON.stringify(data) + '\n\n');
-          //   findNode(data, 'a');
-          //   render = data;
-          // });          
-          // var builder = new xml2js.Builder();
-          // json.handbook.content = builder.buildObject(render);
-
-          if (i === 0) {
-            json.handbook.back = '#';              
-            json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
-          } else if (i === tiddlers.length-1) {
-            json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
-            json.handbook.next = '#';              
-          } else {
-            json.handbook.back = getURLSafeTitle(tiddlers[i-1].title);
-            json.handbook.next = getURLSafeTitle(tiddlers[i+1].title);
-          }
-
-          var safeTitle = getURLSafeTitle(tiddler.title.toLowerCase());
-          var path = config.target + '/' + safeTitle;
-          var file = safeTitle + '/*.html';
-          var item = {};
-          
-          item['gen/handbook/' + file] = 'templates/html/handbook/' + file;
-          buildFiles.push(item);
-          
-          fs.mkdirSync(path);
-          fs.writeFileSync(path + '/index.json', JSON.stringify(json));
-          fs.copySync(getTemplate(tiddler.tags), path + '/index.html');
-        } 
-
-        fs.writeFileSync(config.configFile, JSON.stringify(buildFiles));
-        fs.writeFileSync(config.siteMap.file, generateSiteMap(config.siteMap.url, fields.titles));
-        fs.writeFileSync(config.jsonFile, JSON.stringify({
-          "titles": fields.titles,
-          "index": fields.index,
-          "tags": fields.tagIndex
-        }));
-        done();
+        generateDirectories(JSON.parse(body), done);
       } else {
         console.log(error);
         done(false);
-      }
+      }    
     }
 
     request(options, callback);
@@ -265,12 +278,6 @@ module.exports = function(grunt) {
 
     config = options;
 
-    console.log('Using source URL: ' + options.url);
-    console.log('Using HTML tempates: ' + JSON.stringify(config.templates));
-    console.log('Setting target: ' + config.target);
-    console.log('Setting config file: ' + config.configFile);
-    console.log('Setting JSON file: ' + config.jsonFile);
-
     if (!fs.existsSync(config.target)) {
       fs.mkdirSync(config.target);
     }
@@ -280,6 +287,17 @@ module.exports = function(grunt) {
       removeParams += '&select=tag:!' + options.tags.remove[i];
     }    
 
-    getTiddlers(options.url + removeParams, done);
+    console.log('Using HTML tempates: ' + JSON.stringify(config.templates));
+    console.log('Setting target: ' + config.target);
+    console.log('Setting config file: ' + config.configFile);
+    console.log('Setting JSON file: ' + config.jsonFile);
+
+    if (options.file) {
+      console.log('Using source file: ' + options.file);
+      readTiddlers(options.file, done);
+    } else {
+      console.log('Using source URL: ' + options.url);
+      getTiddlers(options.url + removeParams, done);
+    }
   });
 };

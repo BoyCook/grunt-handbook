@@ -31,6 +31,7 @@ module.exports = function(grunt) {
     // Configuration to be run (and then tested).
     sac2mHandbook: {
       options: {
+        file: 'test/tiddlers.json',
         url: 'http://sac2m.tiddlyspace.com/bags/sac2m_public/tiddlers?select=tag:handbook&render=1&sort=title',
         target: 'tmp',
         configFile: 'tmp/config.json',

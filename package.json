@@ -1,7 +1,7 @@
 {
   "name": "grunt-sac2m-handbook",
   "description": "Generating the Scaling Agile Handbook.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "https://github.com/boycook/grunt-handbook",
   "author": {
     "name": "Craig Cook",

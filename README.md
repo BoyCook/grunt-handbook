@@ -65,6 +65,11 @@ grunt.initConfig({
 });
 ```
 
+### Downloading tiddlers
+
+curl -o tiddlers.json -H "Accept: application/json" http://sac2m.tiddlyspace.com/bags/sac2m_public/tiddlers?select=tag:handbook&render=1&sort=title
+
+
 #### Custom Options
 In this example, custom options are used to do something else with whatever else. So if the `testing` file has the content `Testing` and the `123` file had the content `1 2 3`, the generated result in this case would be `Testing: 1 2 3 !!!`
 
